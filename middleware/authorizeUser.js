@@ -2,7 +2,12 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db');
 
 const authorizeUser = async (req,res,next)=>{
-    const accessToken = req.headers.authorization.split(' ')[1];
+    const accessToken = req?.headers?.authorization?.split(' ')[1];
+    // console.log(req.params);
+    if( !accessToken ){
+        res.status(401).json({ message : "access token not provided" });
+        return;
+    }
     try {
         const { email } = jwt.verify(
             accessToken,

@@ -50,18 +50,56 @@ const addNewChallenge = async (req,res)=>{
 }
 
 const updateChallenge = async (req,res)=>{
-    const id = req;
-    let col_value;
+    // console.log('here');
+    const id = `'${req?.params?.id}'`;
+    
+    // res.json({ id });
+    if( !id )
+        res.status(201).json({ message : "challenge id not provided" });
 
-    const result = await pool.query(
-        `update challenges set ${col_value}
-        where id = ${id};
-        `
-    )
+    let col_value = '';
+
+    Object.entries(req.body)
+    .forEach(([key,value])=>{
+        if( Array.isArray(value) ){
+            col_value += "," + key + `= array [${value.map(elem=>`'${elem}'`)}]`;
+        }
+        else
+            col_value += ","+ key +  `= '${value}'`;
+    })
+    
+    try {
+        col_value = col_value.substring(1);
+        const result = await pool.query(
+            `update challenges set ${col_value} where id = ${id};`,
+            []
+        );
+
+        res.status(204).json({ message : 'challenge updated successfully' });
+    } catch (error) {
+        res.status(500).json(error);
+    }
+}
+
+const deleteChallenge = async (req,res)=>{
+    const id = `'${req?.params?.id}'`;
+    console.log(id);
+
+    try {
+        const result = await pool.query(
+        `delete from challenges where id = ${id}`
+        ,[]
+        )
+
+        res.status(200).json({ message : "challenge was deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message : "some error occured" });
+    }
 }
 
 module.exports = {
     getAllChallenges,
     addNewChallenge,
-    updateChallenge
+    updateChallenge,
+    deleteChallenge
 }
