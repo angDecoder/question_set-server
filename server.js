@@ -10,8 +10,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/user',require('./routes/User'));
+app.use('/question',require('./routes/Question'));
 app.use('/challenges',require('./routes/Challenges'));
-app.use('/sheet',require('./routes/Sheet'));
 
 const connectTodb = async ()=>{
     const res = await pool.query('select 1+1 as sum');
