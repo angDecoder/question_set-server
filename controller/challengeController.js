@@ -5,11 +5,7 @@ const getAllChallenges = async (req,res)=>{
     const { email } = req.headers;
     try {
         const result = await pool.query(
-            `select * from challenges 
-            where owner_id = (
-                select id from users
-                where email = $1
-            )`,
+            `select * from challenges where owner = $1`,
             [email]
         )
         res.status(200).json({ challenges : result.rows });
@@ -20,8 +16,8 @@ const getAllChallenges = async (req,res)=>{
 
 const addNewChallenge = async (req,res)=>{
     const { email } = req.headers;
-    let keys = 'id';
-    let values = `'${randomUUID()}'`;
+    let keys = 'id,owner';
+    let values = `'${randomUUID()}','${email}'`;
     Object.entries(req.body)
     .forEach(([key,value])=>{
         keys += ',' + `${key}`;
@@ -50,7 +46,6 @@ const addNewChallenge = async (req,res)=>{
 }
 
 const updateChallenge = async (req,res)=>{
-    // console.log('here');
     const id = `'${req?.params?.id}'`;
     
     // res.json({ id });

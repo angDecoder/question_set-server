@@ -1,14 +1,17 @@
+const pool = require('../db/index');
+const bcrypt = require('bcrypt');
+const { randomUUID } = require('crypto');
+const jwt = require('jsonwebtoken');
+
 const registerUser = async (req, res) => {
     const { email, password, username } = req.body;
-    const id = randomUUID().toString();
-    // console.log(id);
+
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        // console.log(hashedPassword);
         const result = await pool.query(
-            `insert into users(id,username,email,password) 
-                values($1,$2,$3,$4)`,
-            [id, username, email, `${hashedPassword}`]
+            `insert into users 
+                values('${email}','${username}','${hashedPassword}')`,
+            []
         );
 
         res.status(201).json({ msg: 'new user created' });
@@ -80,7 +83,7 @@ const refreshToken = async (req,res)=>{
             process.env.ACCESS_TOKEN_SECRET
         );
 
-        res.status(200).json(accessToken);
+        res.status(200).json({accessToken});
     } catch (error) {
         res.status(401).json({ message : 'refresh token expired : login again' });
     }
