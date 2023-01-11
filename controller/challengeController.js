@@ -47,8 +47,8 @@ const addNewChallenge = async (req,res)=>{
 
 const updateChallenge = async (req,res)=>{
     const id = `'${req?.params?.id}'`;
-    
-    // res.json({ id });
+    const email = `'${req.headers.email}'`;
+
     if( !id )
         res.status(201).json({ message : "challenge id not provided" });
 
@@ -62,15 +62,17 @@ const updateChallenge = async (req,res)=>{
         else
             col_value += ","+ key +  `= '${value}'`;
     })
+
+    // console.log(id,col_value,email);
     
     try {
         col_value = col_value.substring(1);
         const result = await pool.query(
-            `update challenges set ${col_value} where id = ${id};`,
+            `update challenges set ${col_value} where id = ${id} and owner=${email};`,
             []
         );
 
-        res.status(204).json({ message : 'challenge updated successfully' });
+        res.status(200).json({ message : 'challenge updated successfully' });
     } catch (error) {
         res.status(500).json(error);
     }
@@ -78,17 +80,19 @@ const updateChallenge = async (req,res)=>{
 
 const deleteChallenge = async (req,res)=>{
     const id = `'${req?.params?.id}'`;
-    console.log(id);
+    const email = `'${req.headers.email}'`;
+    
+    // console.log(id,email);
 
     try {
         const result = await pool.query(
-        `delete from challenges where id = ${id}`
+        `delete from challenges where id = ${id} and owner = ${email}`
         ,[]
         )
 
         res.status(200).json({ message : "challenge was deleted successfully" });
     } catch (error) {
-        res.status(500).json({ message : "some error occured" });
+        res.status(500).json( error );
     }
 }
 
