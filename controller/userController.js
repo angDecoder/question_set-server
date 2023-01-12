@@ -136,10 +136,26 @@ const autoLoginUser = async( req,res )=>{
     )
 }
 
+const logoutUser = async( req,res )=>{
+    const { email } = req.body;
+
+    try {
+        const result = await pool.query(
+            `update users set refresh_token = '${randomUUID()}' where email = '${email}'`,
+            []
+        )
+
+        res.status(200).json({ message : "user logged out" });
+    } catch (error) {
+        res.status(500).json({ message : "someting went wrong" });
+    }
+}
+
 
 module.exports = {
     registerUser,
     loginUser,
     refreshToken,
-    autoLoginUser
+    autoLoginUser,
+    logoutUser
 }

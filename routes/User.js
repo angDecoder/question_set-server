@@ -10,7 +10,9 @@ router.post('/login',userController.loginUser);
 
 router.post('/autologin',userController.autoLoginUser);
 
-router.post('/refresh',userController.refreshToken)
+router.post('/refresh',userController.refreshToken);
+
+router.post('/logout',userController.logoutUser);
 
 
 module.exports = router
