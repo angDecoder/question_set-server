@@ -21,7 +21,6 @@ const registerUser = async (req, res) => {
 
 }
 
-
 const loginUser = async (req,res)=>{
     const { email, password } = req.body;
     
@@ -52,7 +51,13 @@ const loginUser = async (req,res)=>{
             {email},
             process.env.ACCESS_TOKEN_SECRET,
             { expiresIn : '2h' }
-        );           
+        );
+        
+        await pool.query(
+            `update users set refresh_token = '${refreshToken}' 
+            where email = '${email}'`,
+            []
+        );
 
         res.status(200).json({ 
             message : 'user logged in', 
@@ -65,7 +70,7 @@ const loginUser = async (req,res)=>{
         });
         
     } catch (error) {
-        res.status(error.code).json({error : error.message});
+        res.status(error.code).json({message : error.message});
     }
 }
 
@@ -89,9 +94,52 @@ const refreshToken = async (req,res)=>{
     }
 }
 
+const autoLoginUser = async( req,res )=>{
+    const { refreshToken } = req.body;
+
+    if( !refreshToken )
+        res.status(403).json({ message : "refresh token not available" });
+
+    
+    jwt.verify(
+        refreshToken,
+        process.env.REFRESH_TOKEN_SECRET,
+        async( err,decoded )=>{
+            if( err ){
+                res.status(400).json({ err,message : "refresh token expired : login again" });
+                return;
+            }
+            const result = await pool.query(
+                `select email,username,refresh_token from users where email = '${decoded.email}'`,
+                []
+            );
+            const accessToken = jwt.sign(
+                {email : decoded.email},
+                process.env.ACCESS_TOKEN_SECRET,
+                { expiresIn : '2h' }
+            );
+            if( result?.rows[0]?.refresh_token===refreshToken ){
+                res.status(200).json({ 
+                    message : "user logged in",
+                    user : {
+                        username : result.rows[0].username,
+                        email : result.rows[0].email,
+                        accessToken
+                    }
+                });
+            }
+            else{
+                res.status(400).json({ message : "refresh token not valid" });
+            }
+            
+        }
+    )
+}
+
 
 module.exports = {
     registerUser,
     loginUser,
-    refreshToken
+    refreshToken,
+    autoLoginUser
 }
