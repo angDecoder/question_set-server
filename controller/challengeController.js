@@ -10,8 +10,8 @@ const getAllChallenges = async (req,res)=>{
         )
         res.status(200).json({ challenges : result.rows });
     } catch (error) {
-        
-    }
+        res.status(500).json({ message : 'some error occured' });
+    }   
 }
 
 const addNewChallenge = async (req,res)=>{
@@ -32,12 +32,16 @@ const addNewChallenge = async (req,res)=>{
 
     try {
         const result = await pool.query(
-            `insert into challenges(${keys}) values(${values})`,
+            `insert into challenges(${keys}) 
+            values(${values})
+            returning id,total,solved,title,description,tags
+            `,
             []
         );
-
-        // console.log(result);
-        res.status(201).json({ message : "new challenge created" });
+        res.status(201).json({ 
+            message : "new challenge created", 
+            challenge : result.rows[0]
+        });
     } catch (error) {
         res.status(500).json(error);
     }
@@ -62,17 +66,21 @@ const updateChallenge = async (req,res)=>{
         else
             col_value += ","+ key +  `= '${value}'`;
     })
-
-    // console.log(id,col_value,email);
     
     try {
         col_value = col_value.substring(1);
         const result = await pool.query(
-            `update challenges set ${col_value} where id = ${id} and owner=${email};`,
+            `update challenges set ${col_value} 
+            where id = ${id} and owner=${email}
+            returning id,total,solved,title,description,tags
+            `,
             []
         );
 
-        res.status(200).json({ message : 'challenge updated successfully' });
+        res.status(200).json({ 
+            message : 'challenge updated successfully',
+            challenge : result.rows[0]
+        });
     } catch (error) {
         res.status(500).json(error);
     }
@@ -81,16 +89,18 @@ const updateChallenge = async (req,res)=>{
 const deleteChallenge = async (req,res)=>{
     const id = `'${req?.params?.id}'`;
     const email = `'${req.headers.email}'`;
-    
-    // console.log(id,email);
 
     try {
         const result = await pool.query(
-        `delete from challenges where id = ${id} and owner = ${email}`
+        `delete from challenges 
+        where id = ${id} and owner = ${email}
+        returning title
+        `
         ,[]
         )
 
-        res.status(200).json({ message : "challenge was deleted successfully" });
+        res.status(200).json({ 
+            message : `"${result?.rows[0]?.title}" was deleted successfully` });
     } catch (error) {
         res.status(500).json( error );
     }

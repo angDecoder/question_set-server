@@ -8,10 +8,23 @@ const getAllQuestions = async(req,res)=>{
 
     try {
         const result = await pool.query(
-            `select * from questions where challenge_id = '${id}'`,
+            `SELECT Q.ID,
+                Q.TITLE,
+                Q.DESCRIPTION,
+                Q.SOLVED,
+                Q.LINK,
+                Q.CODE,
+                Q.LANGUAGE,
+                Q.TAGS
+            FROM QUESTIONS Q
+            JOIN CHALLENGES C ON Q.CHALLENGE_ID = C.ID
+            WHERE C.ID = '${id}';
+            `,
             []
         );
-
+        await pool.query(
+            `update challenges set total = total + 1 where id = '${id}'`
+        )
         res.status(200).json({ questions : result.rows });
 
     } catch (error) {
@@ -41,11 +54,13 @@ const addNewQuestion = async(req,res)=>{
 
     try {
         const result = await pool.query(
-            `insert into questions (${keys}) values(${values})`,
+            `insert into questions (${keys}) values(${values})
+            returning *;
+            `,
             []
         )
 
-        res.status(201).json({ message : "new question added" });
+        res.status(201).json({ message : "new question added",question : result.rows[0] });
     } catch (error) {
         res.status(500).json(error)
     }
@@ -67,7 +82,10 @@ const updateQuestion = async(req,res)=>{
 
     try {
         const result = await pool.query(
-            `update questions set ${col_value} where id = '${id}'`,
+            `update questions 
+            set ${col_value} where id = '${id}'
+            returning *;
+            `,
             []
         );
 
@@ -82,7 +100,10 @@ const deleteQuestion = async(req,res)=>{
     const id = req?.params?.id;
     try {
         const result = await pool.query(
-            `delete from questions where id = '${id}'`,
+            `delete from questions 
+            where id = '${id}'
+            returning title;
+            `,
             []
         )
 
