@@ -2,21 +2,30 @@ const pool = require('../db/index');
 const bcrypt = require('bcrypt');
 const { randomUUID } = require('crypto');
 const jwt = require('jsonwebtoken');
+const { CLIENT_RENEG_LIMIT } = require('tls');
 
 const registerUser = async (req, res) => {
     const { email, password, username } = req.body;
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        const result = await pool.query(
-            `insert into users 
-                values('${email}','${username}','${hashedPassword}')`,
-            []
+        await pool.query(
+            `INSERT INTO USERS(
+                EMAIL,
+                PASSWORD,
+                USERNAME
+            )
+            VALUES($1,$2,$3)`,
+            [email,hashedPassword,username]
         );
 
-        res.status(201).json({ msg: 'new user created' });
+        res.status(201).json({ message : "New User Created" });
+        return;
     } catch (error) {
-        res.status(500).json(error);
+        if( error.code==='23505' )
+            res.status(403).json({ message : error.detail });
+        else 
+            res.status(500).json({ message : "some error occured" });
     }
 
 }
@@ -29,7 +38,9 @@ const loginUser = async (req,res)=>{
             throw { code : 403, message : 'email and password are required' };
 
         let result = await pool.query(
-            `select password,username from users where email=$1`,
+            `SELECT PASSWORD,USERNAME
+            FROM USERS
+            WHERE EMAIL = $1;`,
             [email]
         );
         if( result.rowCount===0 )
@@ -53,24 +64,28 @@ const loginUser = async (req,res)=>{
             { expiresIn : '2h' }
         );
         
-        await pool.query(
-            `update users set refresh_token = '${refreshToken}' 
-            where email = '${email}'`,
-            []
+        const a = await pool.query(
+            `UPDATE USERS
+            SET REFRESH_TOKEN = $1
+            WHERE EMAIL = $2`,
+            [refreshToken,email]
         );
+        // console.log(a.rows[0].refresh_token);
 
         res.status(200).json({ 
-            message : 'user logged in', 
+            message : 'User Logged In', 
             user : {
                 username : result.rows[0].username,
-                accessToken,
-                email,
-                refreshToken
+                refreshToken,
+                accessToken
             }
         });
         
     } catch (error) {
-        res.status(error.code).json({message : error.message});
+        if( error.code )
+            res.status(error.code).json({ message : error.message });
+        else 
+            res.status(500).json({ message : "some error occured" });
     }
 }
 
@@ -110,8 +125,10 @@ const autoLoginUser = async( req,res )=>{
                 return;
             }
             const result = await pool.query(
-                `select email,username,refresh_token from users where email = '${decoded.email}'`,
-                []
+                `SELECT USERNAME,REFRESH_TOKEN
+                FROM USERS 
+                WHERE EMAIL = $1`,
+                [decoded.email]
             );
             const accessToken = jwt.sign(
                 {email : decoded.email},
@@ -123,7 +140,7 @@ const autoLoginUser = async( req,res )=>{
                     message : "user logged in",
                     user : {
                         username : result.rows[0].username,
-                        email : result.rows[0].email,
+                        email : decoded.email,
                         accessToken
                     }
                 });
@@ -140,9 +157,12 @@ const logoutUser = async( req,res )=>{
     const { email } = req.body;
 
     try {
-        const result = await pool.query(
-            `update users set refresh_token = '${randomUUID()}' where email = '${email}'`,
-            []
+        await pool.query(
+            // `update users set refresh_token = '${randomUUID()}' where email = '${email}'`,
+            `UPDATE USERS
+            SET REFRESH_TOKEN = $1
+            WHERE EMAIL = $2`
+            [randomUUID(),email]
         )
 
         res.status(200).json({ message : "user logged out" });
