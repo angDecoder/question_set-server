@@ -10,7 +10,7 @@ const authorizeUser = async (req,res,next)=>{
     }
     try {
         const { email } = jwt.verify(
-            accessToken,
+        accessToken,
             process.env.ACCESS_TOKEN_SECRET
         )
         req.headers = { ...req.headers,email };

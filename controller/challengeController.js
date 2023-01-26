@@ -5,7 +5,10 @@ const getAllChallenges = async (req,res)=>{
     const { email } = req.headers;
     try {
         const result = await pool.query(
-            `select * from challenges where owner = $1`,
+            // `select * from challenges where owner = $1`,
+            `SELECT ID,TITLE,DESCRIPTION,TOTAL,SOLVED,TAGS
+            FROM CHALLENGES
+            WHERE OWNER = $1`,
             [email]
         )
         res.status(200).json({ challenges : result.rows });
@@ -32,21 +35,19 @@ const addNewChallenge = async (req,res)=>{
 
     try {
         const result = await pool.query(
-            `insert into challenges(${keys}) 
-            values(${values})
-            returning id,total,solved,title,description,tags
-            `,
+            `INSERT INTO CHALLENGES(${keys})
+            VALUES (${values})
+            RETURNING ID`,
             []
         );
         res.status(201).json({ 
             message : "new challenge created", 
-            challenge : result.rows[0]
+            challenge_id : result.rows[0].id
         });
     } catch (error) {
         res.status(500).json(error);
     }
 
-    // res.status(200).json({ msg : "done" });
 }
 
 const updateChallenge = async (req,res)=>{
@@ -57,9 +58,11 @@ const updateChallenge = async (req,res)=>{
         res.status(201).json({ message : "challenge id not provided" });
 
     let col_value = '';
+    let returningValue = ''
 
     Object.entries(req.body)
     .forEach(([key,value])=>{
+        returningValue += "," + key;
         if( Array.isArray(value) ){
             col_value += "," + key + `= array [${value.map(elem=>`'${elem}'`)}]`;
         }
@@ -69,11 +72,12 @@ const updateChallenge = async (req,res)=>{
     
     try {
         col_value = col_value.substring(1);
+        returningValue = returningValue.substring(1);
         const result = await pool.query(
-            `update challenges set ${col_value} 
-            where id = ${id} and owner=${email}
-            returning id,total,solved,title,description,tags
-            `,
+            `UPDATE CHALLENGES
+            SET ${col_value}
+            WHERE ID = ${id} AND OWNER = ${email}
+            RETURNING ${returningValue}`,
             []
         );
 
@@ -92,10 +96,9 @@ const deleteChallenge = async (req,res)=>{
 
     try {
         const result = await pool.query(
-        `delete from challenges 
-        where id = ${id} and owner = ${email}
-        returning title
-        `
+        `DELETE FROM CHALLENGES
+        WHERE ID = ${id} AND OWNER = ${email}
+        RETURNING TITLE`
         ,[]
         )
 
