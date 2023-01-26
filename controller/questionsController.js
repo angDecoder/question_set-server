@@ -73,7 +73,7 @@ const updateQuestion = async(req,res)=>{
         const result = await pool.query(
             `update questions 
             set ${col_value} where id = '${id}'
-            returning *;
+            
             `,
             []
         );
