@@ -8,23 +8,10 @@ const getAllQuestions = async(req,res)=>{
 
     try {
         const result = await pool.query(
-            `SELECT Q.ID,
-                Q.TITLE,
-                Q.DESCRIPTION,
-                Q.SOLVED,
-                Q.LINK,
-                Q.CODE,
-                Q.LANGUAGE,
-                Q.TAGS
-            FROM QUESTIONS Q
-            JOIN CHALLENGES C ON Q.CHALLENGE_ID = C.ID
-            WHERE C.ID = '${id}';
-            `,
-            []
+            `SELECT ID,TITLE,DESCRIPTION,LINK,TAGS
+            FROM QUESTIONS WHERE CHALLENGE_ID = $1;`,
+            [id]
         );
-        await pool.query(
-            `update challenges set total = total + 1 where id = '${id}'`
-        )
         res.status(200).json({ questions : result.rows });
 
     } catch (error) {
@@ -54,13 +41,15 @@ const addNewQuestion = async(req,res)=>{
 
     try {
         const result = await pool.query(
-            `insert into questions (${keys}) values(${values})
-            returning *;
+
+            `INSERT INTO QUESTIONS( ${keys} ) 
+            values( ${values} )
+            RETURNING ID
             `,
             []
         )
 
-        res.status(201).json({ message : "new question added",question : result.rows[0] });
+        res.status(201).json({ message : "new question added",id : result.rows[0].id });
     } catch (error) {
         res.status(500).json(error)
     }
