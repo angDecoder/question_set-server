@@ -61,7 +61,7 @@ const loginUser = async (req,res)=>{
         const accessToken = jwt.sign(
             {email},
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn : '2h' }
+            { expiresIn : '2000000' }
         );
         
         const a = await pool.query(
